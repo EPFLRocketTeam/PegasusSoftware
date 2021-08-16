@@ -271,6 +271,10 @@ static void control_update(CONTROL_INST_t * control) {
 		control->counter -= (control->time - control->last_time);
 	}
 
+	if(control->safety_counter_active) {
+		control->safety_counter -= (control->time - control->last_time);
+	}
+
 	while(can_msgPending()) {
 		control->msg = can_readBuffer();
 
@@ -373,6 +377,7 @@ static void init_control(CONTROL_INST_t * control) {
 	control->pp_params.speed = 8000;
 	control->pp_params.countdown_wait = 2000;
 	control->pp_params.half_wait = 2500;
+	control->pp_params.safe_wait = 10000;
 	control->pp_params.full_wait = 20000;
 	control->pp_params.half_angle = DEG2INC(26);
 	control->pp_params.full_angle = DEG2INC(90);
@@ -383,6 +388,7 @@ static void init_idle(CONTROL_INST_t * control) {
 	control->state = CS_IDLE;
 	led_set_color(LED_GREEN);
 	control->counter_active = 0;
+	control->safety_counter_active = 0;
 	control->pp_mov_started = 0;
 	control->pp_hom_started = 0;
 	control->pp_close_mov_started = 0;
@@ -563,6 +569,8 @@ static void init_thrust(CONTROL_INST_t * control) {
 	led_set_color(LED_TEAL);
 	control->counter = control->pp_params.full_wait;
 	control->counter_active = 1;
+	control->safety_counter = control->pp_params.safe_wait;
+	control->safety_counter_active = 1;
 	epos4_ppm_move(control->pp_epos4, EPOS4_ABSOLUTE_IMMEDIATE, control->pp_params.full_angle);
 #if THRUST_CONTROL_ENABLE == 1
 	//TC start
@@ -581,9 +589,12 @@ static void thrust(CONTROL_INST_t * control) {
 		init_shutdown(control);
 	}
 
-	if(control_sched_should_run(control, CONTROL_SCHED_SHUTDOWN)) {
-		init_shutdown(control);
-		control_sched_done(control, CONTROL_SCHED_SHUTDOWN);
+	if(control->safety_counter <= TIME_TOL) {
+		control->safety_counter_active = 0;
+		if(control_sched_should_run(control, CONTROL_SCHED_SHUTDOWN)) {
+			init_shutdown(control);
+			control_sched_done(control, CONTROL_SCHED_SHUTDOWN);
+		}
 	}
 
 }
