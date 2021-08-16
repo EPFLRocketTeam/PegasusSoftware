@@ -74,6 +74,7 @@ struct EPOS4_INST{
 	uint16_t error;
 	int32_t position;
 	uint16_t psu_voltage;
+	uint8_t ready;
 	//semaphore for sync
 	//main board in case of bridged
 

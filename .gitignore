@@ -61,6 +61,11 @@ Final/
 __pycache__
 
 
+#data saves
+
+*.csv
+
+
 
 
 

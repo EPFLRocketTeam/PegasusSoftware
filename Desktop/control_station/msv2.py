@@ -22,6 +22,7 @@ WAITING_CRC2 = 6
 MSV2_PROGRESS = 1
 MSV2_SUCCESS = 0
 MSV2_ERROR = 2
+MSV2_WRONG_CRC = 3
 
 
 def crc16(message):
@@ -205,7 +206,7 @@ class msv2:
                     byte = self.ser.read(1)
                     #print("dta: {}".format(hex(ord(byte))))
                     if not byte:
-                        print("no resp error")
+                        print("no resp error opcode:", opcode)
                         self.mutex.unlock()
                         return 0
                     res = self.decode(byte)
@@ -221,8 +222,8 @@ class msv2:
                     self.mutex.unlock()
                     print("nominal_resp")
                     return self.data
-            except:
-                print("READ ERROR")
+            except Exception as e:
+                print("READ ERROR: ", e)
                 self.mutex.unlock()
                 self.reconnect()
                 return -1

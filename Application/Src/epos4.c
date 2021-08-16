@@ -333,6 +333,10 @@ EPOS4_ERROR_t epos4_sync(EPOS4_INST_t * epos4) {
 	uint32_t err;
 	EPOS4_ERROR_t error = 0;
 
+	if(!epos4->ready) {
+		epos4_config(epos4);
+	}
+
 	error |= epos4_read_statusword(epos4, &epos4->status, &err);
 
 	error |= epos4_read_u16(epos4, EPOS4_ERROR_WORD, &epos4->error, &err);
@@ -348,6 +352,8 @@ EPOS4_ERROR_t epos4_sync(EPOS4_INST_t * epos4) {
 EPOS4_ERROR_t epos4_config(EPOS4_INST_t * epos4) {
 	uint32_t err;
 	EPOS4_ERROR_t error = 0;
+
+	epos4->ready = 0;
 
 	error |= epos4_write_u16(epos4, EPOS4_MOTOR_TYPE, MOTOR_TYPE, &err);
 
@@ -402,6 +408,12 @@ EPOS4_ERROR_t epos4_config(EPOS4_INST_t * epos4) {
 	error |= epos4_write_u32(epos4, EPOS4_PPM_CTRL_FFA, POSITION_FFA, &err);
 
 	error |= epos4_write_u32(epos4, EPOS4_FOLLOW_ERROR_WINDOW, FOLLOW_WINDOW, &err);
+
+	error |= epos4_write_u16(epos4, EPOS4_DIGITAL_IN_POL, 1<<2, &err); //set homing switch polarity
+
+	if(!error) {
+		epos4->ready = 1;
+	}
 
 	return error;
 }
@@ -501,14 +513,13 @@ EPOS4_ERROR_t epos4_hom_config(EPOS4_INST_t * epos4, EPOS4_HOM_CONFIG_t config) 
 
 	error |= epos4_write_i32(epos4, EPOS4_HOME_POSITION, config.home_position, &err);
 
-	error |= epos4_write_i8(epos4, EPOS4_HOMING_METHOD, config.method, &err);
-
 	error |= epos4_write_u32(epos4, EPOS4_HOMING_SPEED_SEARCH, config.switch_search_speed, &err);
 
 	error |= epos4_write_u32(epos4, EPOS4_HOMING_SPEED_ZERO, config.zero_search_speed, &err);
 
 	error |= epos4_write_u32(epos4, EPOS4_HOMING_ACC, config.acceleration, &err);
 
+	error |= epos4_write_i8(epos4, EPOS4_HOMING_METHOD, config.method, &err);
 
 	return error;
 }
@@ -519,11 +530,15 @@ EPOS4_ERROR_t epos4_hom_move(EPOS4_INST_t * epos4) {
 
 	error |= epos4_control_shutdown(epos4, &err);
 
-	osDelay(10);
+	osDelay(15);
 
 	error |= epos4_control_soenable(epos4, &err);
 
-	osDelay(5);
+	osDelay(50);
+
+	uint16_t status;
+
+	error |= epos4_read_statusword(epos4, &status, &err);
 
 	error |= epos4_control_hom_start(epos4, &err);
 
@@ -535,15 +550,12 @@ EPOS4_ERROR_t epos4_hom_terminate(EPOS4_INST_t * epos4, uint8_t * terminated) {
 	uint32_t err;
 	*terminated = 0;
 
-	int32_t current_pos_dbg;
-
 	uint16_t status;
 
 	error |= epos4_read_statusword(epos4, &status, &err);
 
 
-	if(!EPOS4_SW_HOMING_ATTAINED(status)) {
-		error |= epos4_read_i32(epos4, EPOS4_ACTUAL_POSITION, &current_pos_dbg, &err);
+	if(EPOS4_SW_HOMING_ATTAINED(status)) {
 		epos4_control_disable(epos4, &err);
 		*terminated = 1;
 	}

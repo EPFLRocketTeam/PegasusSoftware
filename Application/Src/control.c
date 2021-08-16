@@ -163,6 +163,9 @@ void control_thread(void * arg) {
 	control.pp_epos4 = &pp_epos4;
 	control.ab_epos4 = &ab_epos4;
 
+	//Wait for epos4 to boot
+	//osDelay(500);
+
 	epos4_config(control.pp_epos4);
 
 
@@ -371,7 +374,7 @@ static void init_control(CONTROL_INST_t * control) {
 	control->pp_params.countdown_wait = 2000;
 	control->pp_params.half_wait = 2500;
 	control->pp_params.full_wait = 20000;
-	control->pp_params.half_angle = DEG2INC(27);
+	control->pp_params.half_angle = DEG2INC(26);
 	control->pp_params.full_angle = DEG2INC(90);
 	control->pp_params.glide_time = 120000; // 2 minutes
 }
@@ -444,10 +447,14 @@ static void init_calibration(CONTROL_INST_t * control) {
 	control->state = CS_CALIBRATION;
 	led_set_color(LED_BLUE);
 	sensor_calib();
+	//find home position
 	EPOS4_HOM_CONFIG_t config;
 	config.method = EPOS4_HOM_HOME_SWITCH_POSITIVE_SPEED;
-	config.home_offset = 97.61;
+	config.home_offset = DEG2INC(77.2);
 	config.home_position = 0;
+	config.acceleration = 10000;
+	config.switch_search_speed = 1000;
+	config.zero_search_speed = 100;
 	epos4_hom_config(control->pp_epos4, config);
 	epos4_hom_move(control->pp_epos4);
 	control->pp_hom_started = 1;
@@ -626,6 +633,7 @@ static void init_abort(CONTROL_INST_t * control) {
 	epos4_ppm_move(control->pp_epos4, EPOS4_ABSOLUTE_IMMEDIATE, 0);
 	control->pp_abort_mov_started = 1;
 	control->counter_active=0;
+	control_open_vent();
 	storage_disable();
 }
 
