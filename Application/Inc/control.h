@@ -57,9 +57,11 @@ typedef struct CONTROL_PP_PARAMS {
 	uint32_t half_wait;
 	uint32_t safe_wait;
 	uint32_t full_wait;
+	uint32_t target_wait;
 	int32_t half_angle;
 	int32_t full_angle;
 	int32_t glide_time;
+
 }CONTROL_PP_PARAMS_t;
 
 typedef struct CONTROL_STATUS {
@@ -105,6 +107,9 @@ typedef struct CONTROL_INST{
 	uint8_t counter_active;
 	int32_t safety_counter;
 	uint8_t safety_counter_active;
+	uint8_t safety_triggered;
+	int32_t target_counter;
+	uint8_t target_counter_active;
 	uint32_t iter;
 	EPOS4_INST_t * pp_epos4;
 	EPOS4_INST_t * ab_epos4;

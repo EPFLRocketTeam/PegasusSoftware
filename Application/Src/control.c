@@ -275,6 +275,10 @@ static void control_update(CONTROL_INST_t * control) {
 		control->safety_counter -= (control->time - control->last_time);
 	}
 
+	if(control->target_counter_active) {
+		control->target_counter -= (control->time - control->last_time);
+	}
+
 	while(can_msgPending()) {
 		control->msg = can_readBuffer();
 
@@ -302,6 +306,12 @@ static void control_update(CONTROL_INST_t * control) {
 			}
 			if(control->msg.data == COMMAND_ABORT) {
 				control_abort();
+			}
+		}
+
+		if(control->msg.id == DATA_ID_THRUST_CMD) {
+			if(control->msg.data == 0) {
+				control_shutdown();
 			}
 		}
 	}
@@ -379,6 +389,7 @@ static void init_control(CONTROL_INST_t * control) {
 	control->pp_params.half_wait = 2500;
 	control->pp_params.safe_wait = 10000;
 	control->pp_params.full_wait = 20000;
+	control->pp_params.target_wait = 17000;
 	control->pp_params.half_angle = DEG2INC(26);
 	control->pp_params.full_angle = DEG2INC(90);
 	control->pp_params.glide_time = 120000; // 2 minutes
@@ -389,6 +400,8 @@ static void init_idle(CONTROL_INST_t * control) {
 	led_set_color(LED_GREEN);
 	control->counter_active = 0;
 	control->safety_counter_active = 0;
+	control->target_counter_active = 0;
+	control->safety_triggered = 0;
 	control->pp_mov_started = 0;
 	control->pp_hom_started = 0;
 	control->pp_close_mov_started = 0;
@@ -571,6 +584,9 @@ static void init_thrust(CONTROL_INST_t * control) {
 	control->counter_active = 1;
 	control->safety_counter = control->pp_params.safe_wait;
 	control->safety_counter_active = 1;
+	control->target_counter = control->pp_params.target_wait;
+	control->target_counter_active = 1;
+	control->safety_triggered = 0;
 	epos4_ppm_move(control->pp_epos4, EPOS4_ABSOLUTE_IMMEDIATE, control->pp_params.full_angle);
 #if THRUST_CONTROL_ENABLE == 1
 	//TC start
@@ -594,6 +610,20 @@ static void thrust(CONTROL_INST_t * control) {
 		if(control_sched_should_run(control, CONTROL_SCHED_SHUTDOWN)) {
 			init_shutdown(control);
 			control_sched_done(control, CONTROL_SCHED_SHUTDOWN);
+		}
+	} else {
+		//comment if shutdown should happen after command arrived too soon
+		if(control_sched_should_run(control, CONTROL_SCHED_SHUTDOWN)) {
+			control->safety_triggered = 1;
+			control_sched_done(control, CONTROL_SCHED_SHUTDOWN);
+		}
+	}
+
+	if(control->target_counter <= TIME_TOL) {
+		control->target_counter_active = 0;
+		if(control->safety_triggered) {
+			control->safety_triggered = 0;
+			init_shutdown(control);
 		}
 	}
 

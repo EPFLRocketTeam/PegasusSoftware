@@ -128,8 +128,8 @@ def pp_motor_get_trig():
    serial_worker.send_generic(GET_PP_PARAMS, [0x00, 0x00])
 
 def pp_motor_get_cb(bin_data):
-    if(bin_data and len(bin_data) == 32):
-        data = struct.unpack("IIIIIIii", bytes(bin_data))
+    if(bin_data and len(bin_data) == 44):
+        data = struct.unpack("IIIIIIiiIII", bytes(bin_data))
 
         window.pp_motor_acc.clear()
         window.pp_motor_dec.clear()
@@ -139,6 +139,9 @@ def pp_motor_get_cb(bin_data):
         window.pp_motor_fwait.clear()
         window.pp_motor_hangle.clear()
         window.pp_motor_fangle.clear()
+        window.pp_motor_swait.clear()
+        window.pp_motor_await.clear()
+        window.pp_motor_twait.clear()
 
         window.pp_motor_acc.insert(str(data[0]))
         window.pp_motor_dec.insert(str(data[1]))
@@ -148,6 +151,9 @@ def pp_motor_get_cb(bin_data):
         window.pp_motor_fwait.insert(str(data[5]))
         window.pp_motor_hangle.insert(str(inc2deg(data[6])))
         window.pp_motor_fangle.insert(str(inc2deg(data[7])))
+        window.pp_motor_swait.insert(str(data[8]))
+        window.pp_motor_await.insert(str(data[9]))
+        window.pp_motor_twait.insert(str(data[10]))
 
 
 def pp_motor_set_trig():
@@ -157,9 +163,12 @@ def pp_motor_set_trig():
     cwait = safe_int(window.pp_motor_cwait.text())
     hwait = safe_int(window.pp_motor_hwait.text())
     fwait = safe_int(window.pp_motor_fwait.text())
+    swait = safe_int(window.pp_motor_swait.text())
+    _await = safe_int(window.pp_motor_await.text())
+    twait = safe_int(window.pp_motor_twait.text())
     hangle = deg2inc(safe_float(window.pp_motor_hangle.text()))
     fangle = deg2inc(safe_float(window.pp_motor_fangle.text()))
-    bin_data = struct.pack("IIIIIIii", acc, dec, spd, cwait, hwait, fwait, hangle, fangle)
+    bin_data = struct.pack("IIIIIIiiIII", acc, dec, spd, cwait, hwait, fwait, hangle, fangle, swait, _await, twait)
     serial_worker.send_generic(SET_PP_PARAMS, bin_data);
 
 

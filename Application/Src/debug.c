@@ -30,7 +30,7 @@
 #define DEBUG_UART huart3
 
 
-#define PP_PARAMS_LEN (32)
+#define PP_PARAMS_LEN (44)
 #define PP_MOVE_LEN (6)
 #define STATUS_LEN (28)
 #define SENSOR_LEN (24)
@@ -169,6 +169,9 @@ static void debug_set_pp_params(uint8_t * data, uint16_t data_len, uint8_t * res
 		params.full_wait = util_decode_u32(data+20);
 		params.half_angle = util_decode_i32(data+24);
 		params.full_angle = util_decode_i32(data+28);
+		params.safe_wait = util_decode_u32(data+32);
+		params.glide_time = util_decode_u32(data+36);
+		params.target_wait = util_decode_u32(data+40);
 		control_set_pp_params(params);
 		resp[0] = OK_LO;
 		resp[1] = OK_HI;
@@ -190,6 +193,9 @@ static void debug_get_pp_params(uint8_t * data, uint16_t data_len, uint8_t * res
 	util_encode_u32(resp+20, params.full_wait);
 	util_encode_i32(resp+24, params.half_angle);
 	util_encode_i32(resp+28, params.full_angle);
+	util_encode_u32(resp+32, params.safe_wait);
+	util_encode_u32(resp+36, params.glide_time);
+	util_encode_u32(resp+40, params.target_wait);
 	*resp_len = PP_PARAMS_LEN;
 }
 
