@@ -387,9 +387,9 @@ static void init_control(CONTROL_INST_t * control) {
 	control->pp_params.speed = 8000;
 	control->pp_params.countdown_wait = 2000;
 	control->pp_params.half_wait = 2500;
-	control->pp_params.safe_wait = 10000;
-	control->pp_params.full_wait = 20000;
-	control->pp_params.target_wait = 17000;
+	control->pp_params.safe_wait = 7100;
+	control->pp_params.full_wait = 14780;
+	control->pp_params.target_wait = 8340;
 	control->pp_params.half_angle = DEG2INC(26);
 	control->pp_params.full_angle = DEG2INC(90);
 	control->pp_params.glide_time = 120000; // 2 minutes
