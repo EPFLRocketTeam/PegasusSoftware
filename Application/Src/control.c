@@ -49,6 +49,9 @@
 
 #define CONTROL_SAVE_DELAY	(5000)
 
+
+#define COMM_LOSS_TIMEOUT 900000
+
 /**********************
  *	MACROS
  **********************/
@@ -279,10 +282,24 @@ static void control_update(CONTROL_INST_t * control) {
 		control->target_counter -= (control->time - control->last_time);
 	}
 
+	control->timeout_counter -= (control->time - control->last_time);
+
+	if(control->timeout_reset) {
+		control->timeout_reset = 0;
+		control->timeout_counter = COMM_LOSS_TIMEOUT;
+	}
+
+	if(control->timeout_counter <= TIME_TOL) {
+		control_abort();
+	}
+
 	while(can_msgPending()) {
 		control->msg = can_readBuffer();
 
 		if(control->msg.id == DATA_ID_COMMAND){
+			if(control->msg.data == COMMAND_NO_OPERATION) {
+				control_reset_timeout();
+			}
 			if(control->msg.data == COMMAND_IGNITION) {
 				control_ignite();
 			}
@@ -382,17 +399,20 @@ static void init_control(CONTROL_INST_t * control) {
 	control->needs_recover = 0;
 	control->hang_for_recovery = 1;
 
+	control->timeout_counter = COMM_LOSS_TIMEOUT; //15 minutes
+
 	control->pp_params.acc = 25000;
 	control->pp_params.dec = 25000;
 	control->pp_params.speed = 8000;
 	control->pp_params.countdown_wait = 2000;
 	control->pp_params.half_wait = 2500;
-	control->pp_params.safe_wait = 7100;
-	control->pp_params.full_wait = 14780;
-	control->pp_params.target_wait = 8340;
+	control->pp_params.safe_wait = 5000;
+	control->pp_params.full_wait = 14000;
+	control->pp_params.target_wait = 6000;
 	control->pp_params.half_angle = DEG2INC(26);
 	control->pp_params.full_angle = DEG2INC(90);
 	control->pp_params.glide_time = 120000; // 2 minutes
+	control->pp_params.apoge_time = 20000;
 }
 
 static void init_idle(CONTROL_INST_t * control) {
@@ -633,7 +653,6 @@ static void init_shutdown(CONTROL_INST_t * control) {
 	control->state = CS_SHUTDOWN;
 	epos4_ppm_move(control->pp_epos4, EPOS4_ABSOLUTE_IMMEDIATE, 0);
 	control->pp_close_mov_started = 1;
-	control_open_vent();
 }
 
 static void shutdown(CONTROL_INST_t * control) {
@@ -655,6 +674,8 @@ static void init_glide(CONTROL_INST_t * control) {
 	control->state = CS_GLIDE;
 	control->counter = control->pp_params.glide_time;
 	control->counter_active = 1;
+	control->target_counter = control->pp_params.apoge_time;
+	control->target_counter_active = 1;
 }
 
 static void glide(CONTROL_INST_t * control) {
@@ -664,6 +685,11 @@ static void glide(CONTROL_INST_t * control) {
 	if(control->counter <= TIME_TOL) {
 		control->counter_active = 0;
 		init_idle(control);
+	}
+
+	if(control->target_counter <= TIME_TOL) {
+		control->target_counter_active = 0;
+		control_open_vent();
 	}
 
 }
@@ -772,6 +798,10 @@ void control_shutdown() {
 	control_sched_set(&control, CONTROL_SCHED_SHUTDOWN);
 }
 
+void control_reset_timeout() {
+
+}
+
 CONTROL_STATUS_t control_get_status() {
 	CONTROL_STATUS_t status = {0};
 	status.state = control.state;
@@ -851,7 +881,7 @@ static void control_sched_done(CONTROL_INST_t * control, CONTROL_SCHED_t num) {
 }
 
 static void control_sched_set(CONTROL_INST_t * control, CONTROL_SCHED_t num) {
-	if(control->sched == CONTROL_SCHED_NOTHING) {
+	if(control->sched < num) {
 		for(uint8_t i = 0; i < SCHED_ALLOWED_WIDTH; i++) {
 			if(sched_allowed[control->state][i] == num) {
 				control->sched = num;

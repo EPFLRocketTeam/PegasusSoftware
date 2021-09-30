@@ -61,6 +61,7 @@ typedef struct CONTROL_PP_PARAMS {
 	int32_t half_angle;
 	int32_t full_angle;
 	int32_t glide_time;
+	int32_t apoge_time;
 
 }CONTROL_PP_PARAMS_t;
 
@@ -110,6 +111,8 @@ typedef struct CONTROL_INST{
 	uint8_t safety_triggered;
 	int32_t target_counter;
 	uint8_t target_counter_active;
+	int32_t timeout_counter;
+	uint8_t timeout_reset;
 	uint32_t iter;
 	EPOS4_INST_t * pp_epos4;
 	EPOS4_INST_t * ab_epos4;
@@ -173,6 +176,8 @@ void control_abort();
 void control_recover();
 
 void control_shutdown();
+
+void control_reset_timeout();
 
 uint8_t control_open_vent();
 

@@ -127,7 +127,7 @@ SERIAL_RET_t debug_decode_fcn(void * inst, uint8_t data) {
 
 	if(tmp == MSV2_SUCCESS) {
 		if(debug->msv2.rx.opcode < debug_fcn_max) {
-
+			control_reset_timeout();
 			debug_fcn[debug->msv2.rx.opcode](debug->msv2.rx.data, debug->msv2.rx.length, send_data, &length);
 			//length is in words
 			bin_length = msv2_create_frame(&debug->msv2, debug->msv2.rx.opcode, length/2, send_data);
