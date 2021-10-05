@@ -50,7 +50,7 @@
 #define CONTROL_SAVE_DELAY	(5000)
 
 
-#define COMM_LOSS_TIMEOUT 900000
+#define COMM_LOSS_TIMEOUT 600000
 
 /**********************
  *	MACROS
@@ -799,7 +799,7 @@ void control_shutdown() {
 }
 
 void control_reset_timeout() {
-
+	control.timeout_reset = 1;
 }
 
 CONTROL_STATUS_t control_get_status() {

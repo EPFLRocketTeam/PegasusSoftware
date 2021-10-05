@@ -146,6 +146,7 @@ void storage_init() {
 	}
 	record_active = 0;
 	restart_required = 0;
+	record_should_stop = 0;
 	storage_sem = xSemaphoreCreateBinaryStatic(&storage_sem_buffer);
 	control_release();
 }
@@ -274,7 +275,7 @@ void storage_thread(void * arg) {
 			}
 		}
 		if(xSemaphoreTake(storage_sem, 0xffff) == pdTRUE) {
-			if(record_active & sensor_new_data_storage()) {
+			if(record_active && sensor_new_data_storage()) {
 				storage_record_sample();
 			} else if(sensor_new_calib_storage()) {
 				storage_record_calib();
