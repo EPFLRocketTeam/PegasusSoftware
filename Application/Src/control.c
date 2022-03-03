@@ -2,7 +2,7 @@
  *  Filename	: control.c
  *	Author		: iacopo sprenger
  *	Date		: 20.01.2021
- *	Version		: 0.1
+ *	Version		: 0.2
  *	Description	: main program control
  */
 
